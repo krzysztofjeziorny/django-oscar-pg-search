@@ -58,10 +58,10 @@ OSCAR_PRODUCT_SEARCH_HANDLER = 'oscar_pg_search.postgres_search_handler.Postgres
 HAYSTACK_CONNECTIONS = {"default": {}}
 ```
 
-Trigram search is our search algorithm. Enable it at your database by executing the following sql:
+Trigram search is our search algorithm. A migration is included to enable it at your database. Run migrations to install it
 
 ```
-CREATE EXTENSION pg_trgm;
+python manage.py migrate django-oscar-pg-search
 ```
 
 Optional Search box
