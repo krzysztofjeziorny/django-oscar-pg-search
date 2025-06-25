@@ -1,15 +1,16 @@
 from decimal import Decimal as D
+
 from django import forms
 from django.db.models import Q
 from oscar.core.loading import get_model
+
 from .base_fields import ProductFieldBase
 
-
-RangeProduct = get_model('offer', 'RangeProduct')
-ConditionalOffer = get_model('offer', 'ConditionalOffer')
-Product = get_model('catalogue', 'Product')
-ProductAttribute = get_model('catalogue', 'ProductAttribute')
-ProductAttributeValue = get_model('catalogue', 'ProductAttributeValue')
+RangeProduct = get_model("offer", "RangeProduct")
+ConditionalOffer = get_model("offer", "ConditionalOffer")
+Product = get_model("catalogue", "Product")
+ProductAttribute = get_model("catalogue", "ProductAttribute")
+ProductAttributeValue = get_model("catalogue", "ProductAttributeValue")
 
 
 class MultipleChoiceProductField(ProductFieldBase):
@@ -17,10 +18,11 @@ class MultipleChoiceProductField(ProductFieldBase):
     This field is for weight and volume. They are attached directly to the
     Product.
     """
+
     def get_query(self):
-        """ This is the attribute values query if this option is selected """
+        """This is the attribute values query if this option is selected"""
         option_ids = self.request_data.getlist(self.code)
-        return Q(**{f'{self.code}__in': option_ids}) if option_ids else None
+        return Q(**{f"{self.code}__in": option_ids}) if option_ids else None
 
     def get_choices(self):
         """
@@ -54,7 +56,7 @@ class MultipleChoiceProductField(ProductFieldBase):
 
 
 class ForeignKeyProductField(ProductFieldBase):
-    widget = forms.SelectMultiple(attrs={'class': 'chosen-select'})
+    widget = forms.SelectMultiple(attrs={"class": "chosen-select"})
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -63,12 +65,16 @@ class ForeignKeyProductField(ProductFieldBase):
 
     def get_query(self):
         option_ids = self.request_data.getlist(self.code)
-        return Q(**{f'{self.model_field.name}__id__in': option_ids}) if option_ids else None
+        return (
+            Q(**{f"{self.model_field.name}__id__in": option_ids})
+            if option_ids
+            else None
+        )
 
     def get_choices(self):
         result_for_other = self.manager.get_result(exclude=self)
         model = self.model_field.related_model
 
-        qs_kwargs = {f'{self.related_name}__in': result_for_other}
+        qs_kwargs = {f"{self.related_name}__in": result_for_other}
         qs = model.objects.filter(**qs_kwargs).distinct()
         return sorted([(x.id, str(x)) for x in qs], key=lambda x: x[1])

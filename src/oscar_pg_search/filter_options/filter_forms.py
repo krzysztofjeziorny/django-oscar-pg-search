@@ -1,23 +1,24 @@
 from collections import OrderedDict
+
 from django import forms
-from django.db.models import Q
 from django.conf import settings
-from django.urls.base import reverse
-from django.utils.translation import gettext_lazy as _
-from django.utils.functional import cached_property
 from django.core.cache import cache
+from django.db.models import Q
+from django.urls.base import reverse
+from django.utils.functional import cached_property
+from django.utils.translation import gettext_lazy as _
 from oscar.core.loading import get_model
+
+from .attribute_fields import MultipleChoiceAttributeField, TextAttributeField
 from .base_form import FilterFormBase
-from .product_fields import MultipleChoiceProductField
 from .offer_fields import BooleanOfferField
-from .attribute_fields import TextAttributeField, MultipleChoiceAttributeField
+from .product_fields import MultipleChoiceProductField
 
-
-RangeProduct = get_model('offer', 'RangeProduct')
-ConditionalOffer = get_model('offer', 'ConditionalOffer')
-Product = get_model('catalogue', 'Product')
-ProductAttribute = get_model('catalogue', 'ProductAttribute')
-ProductAttributeValue = get_model('catalogue', 'ProductAttributeValue')
+RangeProduct = get_model("offer", "RangeProduct")
+ConditionalOffer = get_model("offer", "ConditionalOffer")
+Product = get_model("catalogue", "Product")
+ProductAttribute = get_model("catalogue", "ProductAttribute")
+ProductAttributeValue = get_model("catalogue", "ProductAttributeValue")
 
 
 class ProductFilter(FilterFormBase):
@@ -27,9 +28,10 @@ class ProductFilter(FilterFormBase):
     - MultipleChoiceProductField for product attached data (weight, volume)
     - BooleanOfferField for filtering offers only
     """
-    name = 'Filter'
-    code = 'filter'
-    disabled_fields = getattr(settings, 'OSCAR_SEARCH_DISABLED_FIELDS', [])
+
+    name = "Filter"
+    code = "filter"
+    disabled_fields = getattr(settings, "OSCAR_SEARCH_DISABLED_FIELDS", [])
 
     def initialize(self):
         """
@@ -38,7 +40,7 @@ class ProductFilter(FilterFormBase):
         """
         delete_fields = []
         for fieldname, field in self.fields.items():
-            if hasattr(field, 'initialize'):
+            if hasattr(field, "initialize"):
                 field.initialize()
                 if not field.choices:
                     delete_fields.append(fieldname)
@@ -50,7 +52,7 @@ class ProductFilter(FilterFormBase):
 
     @cached_property
     def enabled_attached_fields(self):
-        codes = getattr(settings, 'OSCAR_ATTACHED_PRODUCT_FIELDS', [])
+        codes = getattr(settings, "OSCAR_ATTACHED_PRODUCT_FIELDS", [])
         return [x for x in codes if x not in self.disabled_fields]
 
     def get_product_fields(self):
@@ -68,24 +70,24 @@ class ProductFilter(FilterFormBase):
         """
         field = BooleanOfferField(self.request_data, self)
         if field.get_range_products().exists():
-            return {'offer_only': field}
+            return {"offer_only": field}
         return {}
 
     @cached_property
     def enabled_attributes(self):
         qs = ProductAttribute.objects.all()
-        if hasattr(ProductAttribute, 'filter_enabled'):
+        if hasattr(ProductAttribute, "filter_enabled"):
             qs = qs.filter(filter_enabled=True)
-        codes = qs.values_list('code', flat=True)
+        codes = qs.values_list("code", flat=True)
         return {x for x in codes if x not in self.disabled_fields}
 
     def get_cached_attributes(self):
         qs = ProductAttribute.objects.exclude(code__in=self.disabled_fields)
-        if hasattr(ProductAttribute, 'filter_enabled'):
+        if hasattr(ProductAttribute, "filter_enabled"):
             qs = qs.filter(filter_enabled=True)
         qs = qs.filter(productattributevalue__product__in=self.qs)
-        qs = qs.order_by('name', 'option_group_id')
-        qs = qs.distinct('name', 'option_group_id')
+        qs = qs.order_by("name", "option_group_id")
+        qs = qs.distinct("name", "option_group_id")
         return qs
 
     def get_attribute_fields(self):
@@ -94,21 +96,22 @@ class ProductFilter(FilterFormBase):
         """
         fields = {}
         cached_attributes = cache.get_or_set(
-            'oscar_pg_search__attributes',
+            "oscar_pg_search__attributes",
             self.get_cached_attributes,
         )
         for attribute in cached_attributes:
-            if self.enabled_attributes \
-                    and attribute.code not in self.enabled_attributes:
+            if (
+                self.enabled_attributes
+                and attribute.code not in self.enabled_attributes
+            ):
                 continue
 
             if attribute.type in (attribute.TEXT, attribute.FLOAT, attribute.INTEGER):
                 field = TextAttributeField(attribute, self.request_data, self)
             elif attribute.type in (attribute.OPTION, attribute.MULTI_OPTION):
-                field = MultipleChoiceAttributeField(
-                    attribute, self.request_data, self)
+                field = MultipleChoiceAttributeField(attribute, self.request_data, self)
             else:
-                raise NotImplementedError('Other fields need to be created')
+                raise NotImplementedError("Other fields need to be created")
             fields[str(attribute.id)] = field
         return fields
 
@@ -131,7 +134,7 @@ class ProductFilter(FilterFormBase):
         """
         queries = []
         for field in self.fields.values():
-            if hasattr(field, 'query') and field.query is not None:
+            if hasattr(field, "query") and field.query is not None:
                 queries.append(field.query)
         return queries
 
@@ -143,32 +146,33 @@ class UserFilter(FilterFormBase):
     - wishlist
     - order
     """
-    name = 'Mein Shop'
-    code = 'user'
-    disabled_fields = getattr(settings, 'OSCAR_SEARCH_DISABLED_FIELDS', [])
+
+    name = "Mein Shop"
+    code = "user"
+    disabled_fields = getattr(settings, "OSCAR_SEARCH_DISABLED_FIELDS", [])
 
     def get_fields(self):
         fields = {}
         if self.wishlist_as_link:
-            url = reverse('customer:wishlists-list')
-            onchange_js = 'var key = $(this).val(); window.location.replace'\
-                f'("{url}" + key);'
-            fields['wishlist'] = forms.MultipleChoiceField(
-                label='Favoritenlisten',
-                widget=forms.Select(
-                    attrs={'onchange': onchange_js}),
+            url = reverse("customer:wishlists-list")
+            onchange_js = (
+                f'var key = $(this).val(); window.location.replace("{url}" + key);'
+            )
+            fields["wishlist"] = forms.MultipleChoiceField(
+                label="Favoritenlisten",
+                widget=forms.Select(attrs={"onchange": onchange_js}),
                 required=False,
             )
         else:
-            fields['wishlist'] = forms.MultipleChoiceField(
-                label='Favoritenlisten',
-                widget=forms.SelectMultiple(attrs={'class': 'chosen-select'}),
+            fields["wishlist"] = forms.MultipleChoiceField(
+                label="Favoritenlisten",
+                widget=forms.SelectMultiple(attrs={"class": "chosen-select"}),
                 required=False,
             )
 
-        fields['order'] = forms.MultipleChoiceField(
-            label='Vorherige Bestellungen',
-            widget=forms.SelectMultiple(attrs={'class': 'chosen-select'}),
+        fields["order"] = forms.MultipleChoiceField(
+            label="Vorherige Bestellungen",
+            widget=forms.SelectMultiple(attrs={"class": "chosen-select"}),
             required=False,
         )
         return fields
@@ -183,11 +187,11 @@ class UserFilter(FilterFormBase):
             self.fields = {}
             return None
 
-        if 'wishlist' in self.fields:
-            self.fields['wishlist'].choices = self.get_wishlist_choices()
+        if "wishlist" in self.fields:
+            self.fields["wishlist"].choices = self.get_wishlist_choices()
 
-        if 'order' in self.fields:
-            self.fields['order'].choices = self.get_order_choices()
+        if "order" in self.fields:
+            self.fields["order"].choices = self.get_order_choices()
         result = self.is_valid()
         self._errors = {}
         return result
@@ -201,10 +205,10 @@ class UserFilter(FilterFormBase):
 
         if self.wishlist_as_link:
             return [
-                ('', _('zur Liste springen')),
-                *self.request.user.wishlists.values_list('key', 'name')
+                ("", _("zur Liste springen")),
+                *self.request.user.wishlists.values_list("key", "name"),
             ]
-        return self.request.user.wishlists.values_list('id', 'name')
+        return self.request.user.wishlists.values_list("id", "name")
 
     def get_order_choices(self):
         """
@@ -215,10 +219,10 @@ class UserFilter(FilterFormBase):
 
         order_choices = []
         order_tuples = self.request.user.orders.values_list(
-            'id', 'number', 'date_placed'
+            "id", "number", "date_placed"
         )
         for id_, number, date_placed in order_tuples:
-            order_choices.append((id_, f'{number} ({date_placed.date()})'))
+            order_choices.append((id_, f"{number} ({date_placed.date()})"))
         return order_choices
 
     @property
@@ -229,12 +233,12 @@ class UserFilter(FilterFormBase):
         """
         query = Q()
 
-        if 'wishlist' in self.request_data:
-            wishlist_ids = self.request_data.getlist('wishlist')
+        if "wishlist" in self.request_data:
+            wishlist_ids = self.request_data.getlist("wishlist")
             query |= Q(wishlists_lines__wishlist_id__in=wishlist_ids)
 
-        if 'order' in self.request_data:
-            order_ids = self.request_data.getlist('order')
+        if "order" in self.request_data:
+            order_ids = self.request_data.getlist("order")
             query |= Q(line__order_id__in=order_ids)
 
         return [query]

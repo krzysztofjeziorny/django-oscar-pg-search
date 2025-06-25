@@ -1,4 +1,5 @@
-""" FilterManager for search filters """
+"""FilterManager for search filters"""
+
 from .filter_options import FILTERS
 
 
@@ -8,6 +9,7 @@ class FilterManager:
     :param request: Request of the search
     :param qs: Product objects may be prefiltered by search or user rules
     """
+
     fltr_cls = FILTERS
     wishlist_as_link = False
 
@@ -17,8 +19,8 @@ class FilterManager:
         self.qs = qs
 
         # Domain specific logic for creating Partner based options:
-        if request and hasattr(request, 'partners'):
-            self.main_partner = getattr(request, 'partners')[0]
+        if request and hasattr(request, "partners"):
+            self.main_partner = getattr(request, "partners")[0]
             self.wishlist_as_link = self.main_partner.wishlist_as_link
         self.filters = self.get_filters(request=request)
         self.result = self.get_result()

@@ -2,25 +2,25 @@ from django import forms
 from django.db.models import Q
 from oscar.core.loading import get_model
 
-
-RangeProduct = get_model('offer', 'RangeProduct')
-ConditionalOffer = get_model('offer', 'ConditionalOffer')
-Product = get_model('catalogue', 'Product')
-ProductAttribute = get_model('catalogue', 'ProductAttribute')
-ProductAttributeValue = get_model('catalogue', 'ProductAttributeValue')
+RangeProduct = get_model("offer", "RangeProduct")
+ConditionalOffer = get_model("offer", "ConditionalOffer")
+Product = get_model("catalogue", "Product")
+ProductAttribute = get_model("catalogue", "ProductAttribute")
+ProductAttributeValue = get_model("catalogue", "ProductAttributeValue")
 
 
 class BooleanOfferField(forms.BooleanField):
     """
     Field that is only used for the 'Offer only' filter.
     """
+
     def __init__(self, request_data, form, *args, request=None, **kwargs):
-        super().__init__(label='Nur Angebote', required=False, *args, **kwargs)
-        self.widget.attrs={
-            'onchange': "$('#products').empty();",
-            'class': 'mt-3',
+        super().__init__(label="Nur Angebote", required=False, *args, **kwargs)
+        self.widget.attrs = {
+            "onchange": "$('#products').empty();",
+            "class": "mt-3",
         }
-        self.code = 'offer_only'
+        self.code = "offer_only"
         self.request_data = request_data
         self.manager = form.manager
         self.form = form
@@ -49,14 +49,12 @@ class BooleanOfferField(forms.BooleanField):
         if not self.request:
             return RangeProduct.objects.none()
 
-        if hasattr(self.request, 'partners'):
-            offers = ConditionalOffer.active.filter(
-                partner__in=self.request.partners)
-            qs = RangeProduct.objects.filter(
-                range__condition__offers__in=offers)
+        if hasattr(self.request, "partners"):
+            offers = ConditionalOffer.active.filter(partner__in=self.request.partners)
+            qs = RangeProduct.objects.filter(range__condition__offers__in=offers)
             return qs
 
-        if hasattr(RangeProduct, 'for_user'):
+        if hasattr(RangeProduct, "for_user"):
             return RangeProduct.for_user(self.request.user)  # @UndefinedVariable
 
         return RangeProduct.objects.filter(condition__range__in=offers)
@@ -67,6 +65,6 @@ class BooleanOfferField(forms.BooleanField):
         :returns: Query to filter the result containing only offers for this
         user when the Checkbox is checked.
         """
-        if self.request_data.get('offer_only', False) == 'on':
+        if self.request_data.get("offer_only", False) == "on":
             return Q(rangeproduct__in=self.get_range_products())
         return None

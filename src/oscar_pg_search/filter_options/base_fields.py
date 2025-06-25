@@ -1,17 +1,16 @@
 from django import forms
-from oscar.core.loading import get_model
 from django.core.cache import cache
+from oscar.core.loading import get_model
 
-
-RangeProduct = get_model('offer', 'RangeProduct')
-ConditionalOffer = get_model('offer', 'ConditionalOffer')
-Product = get_model('catalogue', 'Product')
-ProductAttribute = get_model('catalogue', 'ProductAttribute')
-ProductAttributeValue = get_model('catalogue', 'ProductAttributeValue')
+RangeProduct = get_model("offer", "RangeProduct")
+ConditionalOffer = get_model("offer", "ConditionalOffer")
+Product = get_model("catalogue", "Product")
+ProductAttribute = get_model("catalogue", "ProductAttribute")
+ProductAttributeValue = get_model("catalogue", "ProductAttributeValue")
 
 
 class MultipleChoiceFieldBase(forms.MultipleChoiceField):
-    widget = forms.SelectMultiple(attrs={'class': 'chosen-select'})
+    widget = forms.SelectMultiple(attrs={"class": "chosen-select"})
     code: str
 
     def __init__(self, request_data, form, *args, request=None, **kwargs):
@@ -26,10 +25,10 @@ class MultipleChoiceFieldBase(forms.MultipleChoiceField):
         This is running after the result was created by manager.
         """
         path = self.manager.request.get_full_path()
-        key = f'{path}_product_filter_choices__{self.code}'
-        partner = getattr(self.manager, 'main_partner', None)
+        key = f"{path}_product_filter_choices__{self.code}"
+        partner = getattr(self.manager, "main_partner", None)
         if partner:
-            key = f'partner{partner.pk}_{key}'
+            key = f"partner{partner.pk}_{key}"
         self.choices = cache.get_or_set(key, self.get_choices)
 
     @property
@@ -37,18 +36,18 @@ class MultipleChoiceFieldBase(forms.MultipleChoiceField):
         return self.get_query()
 
     def get_query(self):
-        return NotImplementedError('Not implemented in subclass')
+        return NotImplementedError("Not implemented in subclass")
 
     def get_choices(self):
-        return NotImplementedError('Not implemented in subclass')
+        return NotImplementedError("Not implemented in subclass")
 
 
 class AttributeFieldBase(MultipleChoiceFieldBase):
     def __init__(self, attribute, *args, **kwargs):
         super().__init__(*args, label=attribute.name, **kwargs)
         self.attribute = attribute
-        self.fieldname = f'value_{self.attribute.type}'
-        self.code = f'value_{self.attribute.code}'
+        self.fieldname = f"value_{self.attribute.type}"
+        self.code = f"value_{self.attribute.code}"
 
 
 class ProductFieldBase(MultipleChoiceFieldBase):
@@ -60,10 +59,11 @@ class ProductFieldBase(MultipleChoiceFieldBase):
 
     def clean_value(self, value):
         clean_func = {
-            'weight': lambda x: '{}{}'.format(
-                (x * 1000).quantize(1) if x < 1 else x, 'g' if x < 1 else 'kg',
+            "weight": lambda x: "{}{}".format(
+                (x * 1000).quantize(1) if x < 1 else x,
+                "g" if x < 1 else "kg",
             ),
-            'volume': lambda x: f'{float(x)}l',
+            "volume": lambda x: f"{float(x)}l",
         }.get(self.code, lambda x: x)
         return clean_func(value)
 
@@ -72,7 +72,7 @@ class ProductFieldBase(MultipleChoiceFieldBase):
         return self.get_query()
 
     def get_query(self):
-        return NotImplementedError('Not implemented in subclass')
+        return NotImplementedError("Not implemented in subclass")
 
     def get_choices(self):
-        return NotImplementedError('Not implemented in subclass')
+        return NotImplementedError("Not implemented in subclass")
