@@ -4,8 +4,8 @@ from setuptools import find_packages, setup
 from src.oscar_pg_search import __version__
 
 install_requires = [
-    "django>=3.0,<6",
-    "django-oscar>=2.0,<5",
+    "django>=4.2,<6",
+    "django-oscar>=3.0,<5",
 ]
 
 tests_require = [
